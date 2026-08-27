@@ -1,0 +1,12 @@
+{
+  "copies": [
+    "/srv/site-a/wp-content/plugins/example",
+    "/srv/site-b/wp-content/plugins/example"
+  ],
+  "exclude": ["node_modules", ".git", "cache"],
+  "include": "\\.php$",
+  "declared_version": {
+    "file": "example.php",
+    "pattern": "Version:\\s*([0-9.]+)"
+  }
+}
