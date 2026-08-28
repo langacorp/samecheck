@@ -147,7 +147,7 @@ in the other.
 
 LANGA runs 16 digital services across 5 networks on its own infrastructure. This
 tool came out of a defect we hit while running them. See
-[How we work](https://about.langa.tv/come-lavoriamo/).
+[How we work](https://about.langa.tv/how-we-work/).
 
 ---
 
