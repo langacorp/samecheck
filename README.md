@@ -125,22 +125,20 @@ Exit codes: `0` one content · `1` divergence found · `2` nothing was measured.
   are, and deciding they do not matter is a decision.
 - `--include` makes a run faster and the answer smaller. It never makes it safer.
 
-## The other two
+## The other three
 
-`realroute`, `leakform` and `samecheck` came out of the same week of measuring.
-Each one is standalone and depends on neither of the others.
+`realroute`, `leakform`, `samecheck` and `provenreal` came out of the same
+weeks of measuring. Each one is standalone and depends on none of the others.
 
 - **[realroute](https://github.com/langacorp/realroute)** — checks that a route
   really exists, by content and not by status code. Born from a site that answered
-  `200` to every URL, so a status-code check called it green without having looked
-  at anything.
+  200 to an address that could not exist.
 - **[leakform](https://github.com/langacorp/leakform)** — finds secrets in a git
   repository by shape, across every ref. Born from a repository that was searched
   for the first time five years after its last commit.
-
-What they share: coverage is always declared, a run that examined nothing is never
-a pass, and each ships a self-test that must fire in one direction and stay silent
-in the other.
+- **[provenreal](https://github.com/langacorp/provenreal)** — compares what a
+  system claims with what can be measured. Born from six different numbers
+  answering the same question.
 
 
 ## Where this comes from
