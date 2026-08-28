@@ -11,7 +11,7 @@ One configuration file existed in **29 copies**, in **4 distinct versions**, und
 **3 different naming conventions**. Nobody knew that until it was counted.
 
 Separately, one of our own components — a plugin running on dozens of client
-sites through our LINK network — was installed **47 times**. It had **6 distinct contents**
+sites through [link.langa.tv](https://link.langa.tv) — was installed **47 times**. It had **6 distinct contents**
 and declared only **3 version numbers** — including one install that claimed the
 same version as the majority while differing from it, and one that carried the
 *highest* version number while having **lost** five files the others had.
