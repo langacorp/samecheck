@@ -10,7 +10,8 @@ which one is right**.
 One configuration file existed in **29 copies**, in **4 distinct versions**, under
 **3 different naming conventions**. Nobody knew that until it was counted.
 
-Separately, one package was installed **47 times**. It had **6 distinct contents**
+Separately, one of our own components — a plugin running on dozens of client
+sites through our LINK network — was installed **47 times**. It had **6 distinct contents**
 and declared only **3 version numbers** — including one install that claimed the
 same version as the majority while differing from it, and one that carried the
 *highest* version number while having **lost** five files the others had.
@@ -140,6 +141,15 @@ Each one is standalone and depends on neither of the others.
 What they share: coverage is always declared, a run that examined nothing is never
 a pass, and each ships a self-test that must fire in one direction and stay silent
 in the other.
+
+
+## Where this comes from
+
+LANGA runs 16 digital services across 5 networks on its own infrastructure. This
+tool came out of a defect we hit while running them. See
+[How we work](https://about.langa.tv/come-lavoriamo/).
+
+---
 
 ## License
 
