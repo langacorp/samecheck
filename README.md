@@ -1,5 +1,7 @@
 # samecheck
 
+[![self-test](https://github.com/langacorp/samecheck/actions/workflows/selftest.yml/badge.svg)](https://github.com/langacorp/samecheck/actions/workflows/selftest.yml)
+
 Measure whether the copies that should be identical still are — and **never say
 which one is right**.
 
