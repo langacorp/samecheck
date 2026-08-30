@@ -1,0 +1,44 @@
+name: self-test
+
+# Runs the tool's own two-direction self-test on every push.
+# The point is not that it passed once: it is that it passes today.
+#
+# NO SECRETS. This workflow reads nothing but the repository itself and needs
+# no credentials — the permissions below say so explicitly rather than relying
+# on the default.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # A file that does not compile is a test that never ran, and from the
+      # outside it looks exactly like one that passed.
+      - name: Compile
+        run: python -m compileall -q samecheck.py
+
+      # Both directions: it must fire on a planted case and stay silent on a
+      # clean one. A check that only ever passes proves nothing.
+      - name: Self-test
+        run: python samecheck.py --selftest
