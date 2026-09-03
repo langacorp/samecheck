@@ -127,21 +127,25 @@ Exit codes: `0` one content · `1` divergence found · `2` nothing was measured.
   are, and deciding they do not matter is a decision.
 - `--include` makes a run faster and the answer smaller. It never makes it safer.
 
-## The other three
+## The other tools
 
-`realroute`, `leakform`, `samecheck` and `provenreal` came out of the same
-weeks of measuring. Each one is standalone and depends on none of the others.
+Each came out of a defect measured on our own estate. Each one is standalone
+and depends on none of the others.
 
 - **[realroute](https://github.com/langacorp/realroute)** — checks that a route
-  really exists, by content and not by status code. Born from a site that answered
-  200 to an address that could not exist.
+  really exists, by content and not by status code.
 - **[leakform](https://github.com/langacorp/leakform)** — finds secrets in a git
-  repository by shape, across every ref. Born from a repository that was searched
-  for the first time five years after its last commit.
+  repository by shape, across every ref.
 - **[provenreal](https://github.com/langacorp/provenreal)** — compares what a
-  system claims with what can be measured. Born from six different numbers
-  answering the same question.
+  system claims with what can be measured, from independent sources.
+- **[countdrift](https://github.com/langacorp/countdrift)** — finds numbers
+  written by hand that no longer match their source.
+- **[kemproof](https://github.com/langacorp/kemproof)** — attests that an
+  ML-KEM-768 key exchange really happened. It does not encrypt anything.
 
+The set is kept on the [organisation profile](https://github.com/langacorp).
+It is not written here as a count, because a number typed by hand is the thing
+countdrift exists to find.
 
 ## Where this comes from
 
