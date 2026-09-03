@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+type: software
+title: "samecheck"
+abstract: "Measure whether the copies that should be identical still are. Divergence is a fact; choosing the right version is a decision AEGIS leaves to a person."
+authors:
+  - name: "LANGA Corp. Srl"
+    city: Milan
+    country: IT
+    website: "https://langa.tv"
+repository-code: "https://github.com/langacorp/samecheck"
+url: "https://github.com/langacorp/samecheck"
+license: MIT
+version: "1.0.0"
+date-released: "2026-08-27"
