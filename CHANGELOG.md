@@ -3,6 +3,12 @@
 All notable changes to this project are recorded here.
 Dates are the date of the commit, not of a release.
 
+## 2026-09-04
+
+- CITATION.cff: version and date match the release. Zenodo reads this file, so a
+  stale version here is a stale version in the archived record. First release
+  archived by Zenodo.
+
 ## 2026-08-30
 
 - README: remove internal hostnames and client counts

@@ -11,5 +11,5 @@ authors:
 repository-code: "https://github.com/langacorp/samecheck"
 url: "https://github.com/langacorp/samecheck"
 license: MIT
-version: "1.0.0"
-date-released: "2026-08-27"
+version: "1.0.1"
+date-released: "2026-09-04"
