@@ -13,3 +13,7 @@ url: "https://github.com/langacorp/samecheck"
 license: MIT
 version: "1.0.1"
 date-released: "2026-09-04"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22298850"
+    description: "Concept DOI. It resolves to the latest release, not to this one."

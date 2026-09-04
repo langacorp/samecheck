@@ -1,6 +1,7 @@
 # samecheck
 
 [![self-test](https://github.com/langacorp/samecheck/actions/workflows/selftest.yml/badge.svg)](https://github.com/langacorp/samecheck/actions/workflows/selftest.yml)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22298850-blue)](https://doi.org/10.5281/zenodo.22298850)
 
 Measure whether the copies that should be identical still are — and **never say
 which one is right**.
