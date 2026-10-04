@@ -99,6 +99,16 @@ def walk(root, excludes, include=None, errors=None):
 
     for dirpath, dirnames, filenames in os.walk(root, onerror=onerror):
         dirnames[:] = [d for d in dirnames if d not in excludes]
+        # os.walk lists a symlink to a directory but does not enter it. That
+        # is the safe choice - no loops, no walking outside the copy - but
+        # without a word its files would leave the comparison unseen.
+        if errors is not None:
+            for d in sorted(dirnames):
+                full = os.path.join(dirpath, d)
+                if os.path.islink(full):
+                    errors.append({"path": os.path.relpath(full, root),
+                                   "reason": "symlink to a directory, "
+                                             "not followed"})
         for name in filenames:
             if name in excludes:
                 continue
