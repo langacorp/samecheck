@@ -199,6 +199,17 @@ def measure(copies, excludes=None, include=None, version_spec=None):
     }
 
 
+def exit_code(res):
+    """0 one content, 1 divergence found, 2 nothing was measured.
+
+    One function for the text report and --json alike: the same run must not
+    exit differently depending on how its answer is printed.
+    """
+    if res["coverage"]["copies_measured"] == 0:
+        return 2
+    return 1 if res["distinct_contents"] > 1 else 0
+
+
 def report(res, stream=sys.stdout, diff_against_largest=True):
     c = res["coverage"]
     stream.write(f"\n{res['distinct_contents']} distinct contents across "
@@ -259,8 +270,7 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
 
     if c["copies_measured"] == 0:
         stream.write("NOTHING WAS MEASURED. This is not a pass.\n")
-        return 2
-    return 1 if res["distinct_contents"] > 1 else 0
+    return exit_code(res)
 
 
 # --------------------------------------------------------------------------
@@ -421,7 +431,7 @@ def main(argv=None):
         out = {k: v for k, v in res.items() if not k.startswith("_")}
         json.dump(out, sys.stdout, indent=2)
         sys.stdout.write("\n")
-        return 1 if res["distinct_contents"] > 1 else 0
+        return exit_code(res)
     return report(res)
 
 
