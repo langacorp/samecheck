@@ -255,6 +255,23 @@ class SpecialFileTests(TmpCase):
         self.assertEqual(data["distinct_contents"], 1)
         self.assertEqual(p.returncode, 0)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "needs os.mkfifo")
+    def test_fifo_as_version_file_does_not_block(self):
+        files = dict(BASE)
+        del files["plugin.php"]
+        a = self.copy("a", files)
+        os.mkfifo(os.path.join(a, "plugin.php"))
+        cfg = os.path.join(self.tmp, "c.json")
+        with open(cfg, "w") as fh:
+            json.dump({"copies": [a], "declared_version": VSPEC}, fh)
+        try:
+            p = subprocess.run([sys.executable, SCRIPT, "-c", cfg, "--json"],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=20)
+        except subprocess.TimeoutExpired:
+            self.fail("samecheck blocked on a FIFO named as the version file")
+        self.assertEqual(json.loads(p.stdout)["groups"][0]["declared"], [None])
+
     def test_broken_symlink_is_unreadable(self):
         b = self.copy("b")
         os.symlink(os.path.join(self.tmp, "nowhere"), os.path.join(b, "dead"))

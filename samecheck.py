@@ -168,6 +168,8 @@ def declared_version(root, spec):
     if not spec:
         return None
     path = os.path.join(root, spec["file"]) if os.path.isdir(root) else root
+    if not os.path.isfile(path):  # absent, or a FIFO that would block
+        return None
     try:
         with open(path, "rb") as fh:
             data = fh.read(1 << 20)
