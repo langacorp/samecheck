@@ -460,6 +460,63 @@ class CliTests(TmpCase):
             run_main(["--exclude", "node_modules", "--exclude", "cache",
                       a, b])[0], 0)
 
+    def _cfg(self, obj, raw=None):
+        cfg = os.path.join(self.tmp, "cfg.json")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            fh.write(raw if raw is not None else json.dumps(obj))
+        return cfg
+
+    def assertUsageError(self, argv, needle):
+        rc, out, err = run_main(argv)
+        self.assertEqual(rc, 2, err)
+        self.assertIn(needle, err)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(out, "")
+
+    def test_missing_config_is_usage_error(self):
+        self.assertUsageError(["-c", os.path.join(self.tmp, "nope.json")],
+                              "cannot read config")
+
+    def test_invalid_json_config_is_usage_error(self):
+        self.assertUsageError(["-c", self._cfg(None, raw="{not json")],
+                              "cannot read config")
+
+    def test_copies_must_be_a_list(self):
+        # A string was iterated one character at a time: "/srv/x" became the
+        # copies "/", "s", "r", ... and "/" was walked in full. The value here
+        # has no slash, so the old code fails fast instead of walking "/".
+        self.assertUsageError(["-c", self._cfg({"copies": "ab"})], "copies")
+
+    def test_bad_include_regex_is_usage_error(self):
+        a = self.copy("a")
+        self.assertUsageError(["--include", "(", a, a], "--include")
+
+    def test_bad_include_regex_in_config_is_usage_error(self):
+        a = self.copy("a")
+        self.assertUsageError(
+            ["-c", self._cfg({"copies": [a], "include": "("})], "include")
+
+    def test_version_pattern_without_group_is_usage_error(self):
+        a = self.copy("a")
+        self.assertUsageError(
+            ["-c", self._cfg({"copies": [a], "declared_version":
+                              {"file": "plugin.php", "pattern": "Version"}})],
+            "group")
+
+    def test_version_spec_without_file_is_usage_error(self):
+        a = self.copy("a")
+        self.assertUsageError(
+            ["-c", self._cfg({"copies": [a], "declared_version":
+                              {"pattern": "(x)"}})],
+            "file")
+
+    def test_valid_config_still_works(self):
+        a, b = self.copy("a"), self.copy("b")
+        rc, _, err = run_main(["-c", self._cfg({
+            "copies": [a, b], "include": r"\.php$",
+            "declared_version": VSPEC})])
+        self.assertEqual(rc, 0, err)
+
     def test_version_flag(self):
         rc, out, _ = run_main(["--version"])
         self.assertEqual(rc, 0)
