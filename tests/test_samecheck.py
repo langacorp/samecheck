@@ -147,6 +147,24 @@ class MeasureTests(TmpCase):
         r = samecheck.measure([self.copy("a"), b])
         self.assertEqual(r["distinct_contents"], 1)
 
+    def test_default_excludes_vendor_bin(self):
+        b = self.copy("b", **{"vendor/bin/tool": b"#!/bin/sh\n"})
+        r = samecheck.measure([self.copy("a"), b])
+        self.assertEqual(r["distinct_contents"], 1)
+
+    def test_nested_vendor_bin_excluded_but_vendor_is_not(self):
+        b = self.copy("b", **{"sub/vendor/bin/tool": b"x"})
+        self.assertEqual(
+            samecheck.measure([self.copy("a"), b])["distinct_contents"], 1)
+        c = self.copy("c", **{"vendor/lib/x.php": b"x"})
+        self.assertEqual(
+            samecheck.measure([self.copy("a2"), c])["distinct_contents"], 2)
+
+    def test_multi_part_exclude_is_not_a_substring_match(self):
+        c = self.copy("c", **{"myvendor/bin/x": b"x", "vendor/binary/y": b"y"})
+        self.assertEqual(
+            samecheck.measure([self.copy("a"), c])["distinct_contents"], 2)
+
     def test_explicit_empty_excludes_sees_node_modules(self):
         b = self.copy("b", **{"node_modules/junk/x.js": b"//"})
         r = samecheck.measure([self.copy("a"), b], excludes=[])
