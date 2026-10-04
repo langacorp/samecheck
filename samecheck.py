@@ -36,6 +36,12 @@ import tempfile
 
 __version__ = "0.1.0"
 
+# The manifest key for a copy that is one file rather than a directory. Its own
+# name is left out on purpose: the same file kept as config.php, config-old.php
+# and config.php.bak is one content under three names, and grouping is by
+# content, never by name.
+SINGLE_FILE = "."
+
 DEFAULT_EXCLUDES = [
     "node_modules", ".git", "__pycache__", ".svn", ".hg",
     "vendor/bin", ".DS_Store", "Thumbs.db",
@@ -70,7 +76,7 @@ def walk(root, excludes, include=None, errors=None):
     """
     out = []
     if os.path.isfile(root):
-        return [os.path.basename(root)]
+        return [SINGLE_FILE]
 
     # An exclude with a slash ("vendor/bin") names a run of path components.
     # Compared one component at a time, as plain names are, it never matched.
