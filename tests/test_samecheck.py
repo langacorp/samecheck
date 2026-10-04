@@ -204,6 +204,38 @@ class MeasureTests(TmpCase):
         self.assertEqual(r["coverage"]["unreadable_files"], 0)
 
 
+class SingleFileTests(TmpCase):
+    def _file(self, name, content):
+        p = os.path.join(self.tmp, name)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "wb") as fh:
+            fh.write(content)
+        return p
+
+    def test_same_content_different_names_is_one_content(self):
+        a = self._file("x/config.php", b"<?php $a = 1;\n")
+        b = self._file("y/config-old.php", b"<?php $a = 1;\n")
+        c = self._file("z/config.php.bak", b"<?php $a = 1;\n")
+        r = samecheck.measure([a, b, c])
+        self.assertEqual(r["distinct_contents"], 1)
+        self.assertEqual(run_main([a, b, c])[0], 0)
+
+    def test_different_content_different_names_is_two(self):
+        a = self._file("x/config.php", b"<?php $a = 1;\n")
+        b = self._file("y/config-old.php", b"<?php $a = 2;\n")
+        r = samecheck.measure([a, b])
+        self.assertEqual(r["distinct_contents"], 2)
+        s = io.StringIO()
+        self.assertEqual(samecheck.report(r, s), 1)
+        self.assertIn("in both, different content: 1", s.getvalue())
+
+    def test_declared_version_of_a_single_file(self):
+        a = self._file("x/plugin.php", b"// Version: 1.0\n")
+        b = self._file("y/plugin-copy.php", b"// Version: 1.0\n// edit\n")
+        r = samecheck.measure([a, b], version_spec=VSPEC)
+        self.assertEqual(len(r["contradictions"]), 1)
+
+
 class SpecialFileTests(TmpCase):
     @unittest.skipUnless(hasattr(os, "mkfifo"), "needs os.mkfifo")
     def test_fifo_is_not_read_and_is_declared(self):
