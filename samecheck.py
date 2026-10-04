@@ -511,8 +511,10 @@ def main(argv=None):
     p.add_argument("copies", nargs="*", help="paths to compare")
     p.add_argument("-c", "--config", help="JSON file with copies and options")
     p.add_argument("--exclude", action="append", default=None,
-                   help="name to skip (repeatable)")
-    p.add_argument("--include", help="only files whose path matches this regex")
+                   help="name to skip (repeatable); replaces the defaults, or "
+                        "adds to the config's list")
+    p.add_argument("--include", help="only files whose path matches this "
+                                     "regex; overrides the config's")
     p.add_argument("--json", action="store_true")
     p.add_argument("--selftest", action="store_true",
                    help="prove the check in both directions and exit")
@@ -526,8 +528,14 @@ def main(argv=None):
     try:
         if args.config:
             copies, excludes, include, version_spec = load_config(args.config)
+            # Command-line values are not dropped next to a config: copies and
+            # excludes are added to its lists, --include replaces its filter.
             if args.copies:
                 copies = list(copies) + args.copies
+            if args.exclude is not None:
+                excludes = list(excludes) + args.exclude
+            if args.include is not None:
+                include = check_regex(args.include, "--include")
         else:
             copies = args.copies
             excludes = (args.exclude if args.exclude is not None
