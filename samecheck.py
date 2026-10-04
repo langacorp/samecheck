@@ -72,6 +72,19 @@ def walk(root, excludes, include=None, errors=None):
     if os.path.isfile(root):
         return [os.path.basename(root)]
 
+    # An exclude with a slash ("vendor/bin") names a run of path components.
+    # Compared one component at a time, as plain names are, it never matched.
+    multi = [tuple(p for p in e.replace("\\", "/").split("/") if p)
+             for e in excludes if "/" in e or "\\" in e]
+
+    def excluded_run(parts):
+        for m in multi:
+            n = len(m)
+            for i in range(len(parts) - n + 1):
+                if tuple(parts[i:i + n]) == m:
+                    return True
+        return False
+
     def onerror(e):
         if errors is not None:
             where = e.filename if e.filename is not None else root
@@ -84,7 +97,10 @@ def walk(root, excludes, include=None, errors=None):
             if name in excludes:
                 continue
             rel = os.path.relpath(os.path.join(dirpath, name), root)
-            if any(part in excludes for part in rel.split(os.sep)):
+            parts = rel.split(os.sep)
+            if any(part in excludes for part in parts):
+                continue
+            if multi and excluded_run(parts[:-1]):
                 continue
             if include and not re.search(include, rel):
                 continue
