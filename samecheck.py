@@ -30,6 +30,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 
@@ -88,6 +89,11 @@ def manifest(root, excludes, include=None):
     for rel in walk(root, excludes, include):
         full = root if os.path.isfile(root) else os.path.join(base, rel)
         try:
+            # A FIFO or device is not content, and opening a FIFO for reading
+            # blocks until something writes to it: the run would never end.
+            if not stat.S_ISREG(os.stat(full).st_mode):
+                unreadable.append({"path": rel, "reason": "not a regular file"})
+                continue
             entries[rel] = file_digest(full)
         except OSError as e:
             unreadable.append({"path": rel, "reason": type(e).__name__})
