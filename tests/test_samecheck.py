@@ -278,6 +278,11 @@ class CliTests(TmpCase):
         self.assertEqual(rc, 1)
         self.assertEqual(json.loads(out)["distinct_contents"], 2)
 
+    def test_json_exit_2_when_nothing_measured(self):
+        rc, out, _ = run_main(["--json", os.path.join(self.tmp, "nope")])
+        self.assertEqual(json.loads(out)["coverage"]["copies_measured"], 0)
+        self.assertEqual(rc, 2)
+
     def test_no_paths_is_usage_error(self):
         self.assertEqual(run_main([])[0], 2)
 
