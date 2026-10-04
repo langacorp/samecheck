@@ -517,6 +517,23 @@ class CliTests(TmpCase):
             "declared_version": VSPEC})])
         self.assertEqual(rc, 0, err)
 
+    def test_cli_include_applies_with_config(self):
+        a = self.copy("a")
+        b = self.copy("b", assets__style_css=b"changed")
+        cfg = self._cfg({"copies": [a, b]})
+        self.assertEqual(run_main(["-c", cfg])[0], 1)
+        rc, out, _ = run_main(["-c", cfg, "--include", r"\.php$", "--json"])
+        self.assertEqual(json.loads(out)["coverage"]["include_filter"],
+                         r"\.php$")
+        self.assertEqual(rc, 0)
+
+    def test_cli_exclude_applies_with_config(self):
+        a = self.copy("a")
+        b = self.copy("b", **{"cache/y": b"y"})
+        cfg = self._cfg({"copies": [a, b], "exclude": ["node_modules"]})
+        self.assertEqual(run_main(["-c", cfg])[0], 1)
+        self.assertEqual(run_main(["-c", cfg, "--exclude", "cache"])[0], 0)
+
     def test_version_flag(self):
         rc, out, _ = run_main(["--version"])
         self.assertEqual(rc, 0)
