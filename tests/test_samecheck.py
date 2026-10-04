@@ -212,6 +212,47 @@ class SpecialFileTests(TmpCase):
         self.assertEqual(r["coverage"]["unreadable_files"], 1)
 
 
+class UnreadableDirectoryTests(TmpCase):
+    def _two_copies_with_secret(self):
+        a = self.copy("a", **{"secret/k": b"1"})
+        b = self.copy("b", **{"secret/k": b"2"})
+        return a, b
+
+    def test_unlistable_directory_is_declared(self):
+        # Simulated, so it also runs as root, where chmod does not stop reads.
+        a, b = self._two_copies_with_secret()
+        real = os.scandir
+
+        def deny(path="."):
+            if os.path.basename(os.fspath(path)) == "secret":
+                raise PermissionError(13, "Permission denied", path)
+            return real(path)
+
+        with mock.patch("os.scandir", deny):
+            r = samecheck.measure([a, b])
+        self.assertEqual(r["coverage"]["unreadable_dirs"], 2)
+        self.assertEqual(r["_seen"][0]["unreadable_dirs"][0],
+                         {"path": "secret", "reason": "PermissionError"})
+        s = io.StringIO()
+        samecheck.report(r, s)
+        self.assertIn("2 directories unreadable", s.getvalue())
+
+    def test_listable_directory_is_not_declared(self):
+        a, b = self._two_copies_with_secret()
+        r = samecheck.measure([a, b])
+        self.assertEqual(r["coverage"]["unreadable_dirs"], 0)
+        self.assertEqual(r["distinct_contents"], 2)
+
+    @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
+                     "chmod does not stop root from reading")
+    def test_chmod_000_directory(self):
+        a, b = self._two_copies_with_secret()
+        for root in (a, b):
+            os.chmod(os.path.join(root, "secret"), 0)
+        r = samecheck.measure([a, b])
+        self.assertEqual(r["coverage"]["unreadable_dirs"], 2)
+
+
 class DeclaredVersionTests(TmpCase):
     def test_contradiction_named(self):
         r = samecheck.measure([self.copy("p"),
