@@ -452,13 +452,55 @@ def selftest(stream=sys.stdout):
 
 # --------------------------------------------------------------------------
 
+class ConfigError(ValueError):
+    """A config or option that cannot be used as given."""
+
+
+def check_regex(value, where, groups=0):
+    try:
+        rx = re.compile(value)
+    except (re.error, TypeError) as e:
+        raise ConfigError(f"{where}: not a valid regular expression: {e}")
+    if rx.groups < groups:
+        raise ConfigError(f"{where}: needs one capture group, e.g. "
+                          f"Version:\\s*([0-9.]+)")
+    return value
+
+
+def check_version_spec(spec):
+    if spec is None:
+        return None
+    if (not isinstance(spec, dict) or not isinstance(spec.get("file"), str)
+            or not isinstance(spec.get("pattern"), str)):
+        raise ConfigError('declared_version: needs "file" and "pattern", '
+                          'both strings')
+    check_regex(spec["pattern"], "declared_version.pattern", groups=1)
+    return spec
+
+
 def load_config(path):
-    with open(path, "r", encoding="utf-8") as fh:
-        cfg = json.load(fh)
-    return (cfg.get("copies", []),
-            cfg.get("exclude", DEFAULT_EXCLUDES),
-            cfg.get("include"),
-            cfg.get("declared_version"))
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            cfg = json.load(fh)
+    except (OSError, ValueError) as e:
+        raise ConfigError(f"cannot read config {path}: {e}")
+    if not isinstance(cfg, dict):
+        raise ConfigError(f"config {path}: must be a JSON object")
+    copies = cfg.get("copies", [])
+    excludes = cfg.get("exclude", DEFAULT_EXCLUDES)
+    # A string here would be read one character at a time: "/srv/x" would
+    # become the copies "/", "s", "r", ... and "/" would be walked in full.
+    if not isinstance(copies, list) or not all(isinstance(c, str)
+                                               for c in copies):
+        raise ConfigError(f"config {path}: copies must be a list of paths")
+    if not isinstance(excludes, list) or not all(isinstance(e, str)
+                                                 for e in excludes):
+        raise ConfigError(f"config {path}: exclude must be a list of names")
+    include = cfg.get("include")
+    if include is not None:
+        check_regex(include, "include")
+    return (copies, excludes, include,
+            check_version_spec(cfg.get("declared_version")))
 
 
 def main(argv=None):
@@ -481,14 +523,21 @@ def main(argv=None):
         return selftest()
 
     version_spec = None
-    if args.config:
-        copies, excludes, include, version_spec = load_config(args.config)
-        if args.copies:
-            copies = list(copies) + args.copies
-    else:
-        copies = args.copies
-        excludes = args.exclude if args.exclude is not None else DEFAULT_EXCLUDES
-        include = args.include
+    try:
+        if args.config:
+            copies, excludes, include, version_spec = load_config(args.config)
+            if args.copies:
+                copies = list(copies) + args.copies
+        else:
+            copies = args.copies
+            excludes = (args.exclude if args.exclude is not None
+                        else DEFAULT_EXCLUDES)
+            include = args.include
+            if include is not None:
+                check_regex(include, "--include")
+    except ConfigError as e:
+        # A traceback exits 1, which is the code for "divergence found".
+        p.error(str(e))
     if not copies:
         p.error("give at least two paths, or a --config (or use --selftest)")
 
