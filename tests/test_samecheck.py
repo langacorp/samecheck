@@ -332,6 +332,25 @@ class UnreadableDirectoryTests(TmpCase):
         self.assertEqual(r["coverage"]["unreadable_dirs"], 0)
         self.assertEqual(r["distinct_contents"], 2)
 
+    def test_symlinked_directory_is_declared_not_followed(self):
+        real = self.copy("real", {"a.php": b"x"})
+        a = self.copy("a", **{"lib/a.php": b"x"})
+        b = self.copy("b")
+        os.symlink(real, os.path.join(b, "lib2"))
+        r = samecheck.measure([b])
+        self.assertEqual(r["coverage"]["unreadable_dirs"], 1)
+        self.assertEqual(r["_seen"][0]["unreadable_dirs"][0]["path"], "lib2")
+        self.assertIn("not followed",
+                      r["_seen"][0]["unreadable_dirs"][0]["reason"])
+        self.assertEqual(samecheck.measure([a])["coverage"]["unreadable_dirs"],
+                         0)
+
+    def test_excluded_symlinked_directory_is_not_declared(self):
+        b = self.copy("b")
+        os.symlink(self.copy("real"), os.path.join(b, "node_modules"))
+        self.assertEqual(samecheck.measure([b])["coverage"]["unreadable_dirs"],
+                         0)
+
     @unittest.skipIf(not hasattr(os, "geteuid") or os.geteuid() == 0,
                      "chmod does not stop root from reading")
     def test_chmod_000_directory(self):
