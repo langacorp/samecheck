@@ -186,6 +186,32 @@ class MeasureTests(TmpCase):
         self.assertEqual(r["coverage"]["unreadable_files"], 0)
 
 
+class SpecialFileTests(TmpCase):
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "needs os.mkfifo")
+    def test_fifo_is_not_read_and_is_declared(self):
+        # Opening a FIFO for reading blocks until a writer appears. Run in a
+        # subprocess with a timeout so a regression fails instead of hanging.
+        a = self.copy("a")
+        b = self.copy("b")
+        os.mkfifo(os.path.join(b, "pipe"))
+        try:
+            p = subprocess.run([sys.executable, SCRIPT, "--json", a, b],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=20)
+        except subprocess.TimeoutExpired:
+            self.fail("samecheck blocked on a FIFO")
+        data = json.loads(p.stdout)
+        self.assertEqual(data["coverage"]["unreadable_files"], 1)
+        self.assertEqual(data["distinct_contents"], 1)
+        self.assertEqual(p.returncode, 0)
+
+    def test_broken_symlink_is_unreadable(self):
+        b = self.copy("b")
+        os.symlink(os.path.join(self.tmp, "nowhere"), os.path.join(b, "dead"))
+        r = samecheck.measure([b])
+        self.assertEqual(r["coverage"]["unreadable_files"], 1)
+
+
 class DeclaredVersionTests(TmpCase):
     def test_contradiction_named(self):
         r = samecheck.measure([self.copy("p"),
