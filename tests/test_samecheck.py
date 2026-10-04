@@ -402,6 +402,25 @@ class ReportTests(TmpCase):
         self.assertEqual(rc, 2)
         self.assertIn("NOTHING WAS MEASURED", out)
 
+    def test_exit_2_when_no_file_was_measured(self):
+        # An include that matches nothing leaves every copy empty; equal
+        # empty manifests are not evidence that the copies are the same.
+        r = samecheck.measure([self.copy("a"), self.copy("b")],
+                              include=r"\.nothing$")
+        self.assertEqual(r["coverage"]["files_measured"], 0)
+        rc, out = self.report(r)
+        self.assertEqual(rc, 2)
+        self.assertIn("NOTHING WAS MEASURED", out)
+        rc, _, _ = run_main(["--json", "--include", r"\.nothing$",
+                             self.copy("c"), self.copy("d")])
+        self.assertEqual(rc, 2)
+
+    def test_one_file_measured_is_not_nothing(self):
+        r = samecheck.measure([self.copy("a"), self.copy("b")],
+                              include=r"^plugin\.php$")
+        self.assertEqual(r["coverage"]["files_measured"], 2)
+        self.assertEqual(self.report(r)[0], 0)
+
     def test_contradiction_printed(self):
         _, out = self.report(samecheck.measure(
             [self.copy("p"), self.copy("q", lib__a_php=b"d")],
