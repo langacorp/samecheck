@@ -34,7 +34,7 @@ import stat
 import sys
 import tempfile
 
-__version__ = "0.1.0"
+__version__ = "1.1.0"
 
 # The manifest key for a copy that is one file rather than a directory. Its own
 # name is left out on purpose: the same file kept as config.php, config-old.php
