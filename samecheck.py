@@ -57,17 +57,28 @@ def file_digest(path, chunk=1 << 20):
     return h.hexdigest()
 
 
-def walk(root, excludes, include=None):
+def walk(root, excludes, include=None, errors=None):
     """Relative paths of every regular file under root, SORTED.
 
     Sorting is not cosmetic. os.walk does not guarantee an order, and without a
     stable one two identical copies produce two different fingerprints - the tool
     would report divergence everywhere and mean nothing by it.
+
+    A directory that cannot be listed is appended to `errors` when given. By
+    default os.walk skips it without a word, and every file inside it would
+    silently leave the comparison.
     """
     out = []
     if os.path.isfile(root):
         return [os.path.basename(root)]
-    for dirpath, dirnames, filenames in os.walk(root):
+
+    def onerror(e):
+        if errors is not None:
+            where = e.filename if e.filename is not None else root
+            errors.append({"path": os.path.relpath(where, root),
+                           "reason": type(e).__name__})
+
+    for dirpath, dirnames, filenames in os.walk(root, onerror=onerror):
         dirnames[:] = [d for d in dirnames if d not in excludes]
         for name in filenames:
             if name in excludes:
@@ -82,11 +93,15 @@ def walk(root, excludes, include=None):
     return out
 
 
-def manifest(root, excludes, include=None):
-    """{relative path: sha256}, plus any file that could not be read."""
+def manifest(root, excludes, include=None, unreadable_dirs=None):
+    """{relative path: sha256}, plus any file that could not be read.
+
+    Directories that could not be listed are appended to `unreadable_dirs`
+    when given.
+    """
     entries, unreadable = {}, []
     base = os.path.dirname(root) if os.path.isfile(root) else root
-    for rel in walk(root, excludes, include):
+    for rel in walk(root, excludes, include, errors=unreadable_dirs):
         full = root if os.path.isfile(root) else os.path.join(base, rel)
         try:
             # A FIFO or device is not content, and opening a FIFO for reading
@@ -149,13 +164,16 @@ def measure(copies, excludes=None, include=None, version_spec=None):
         if not os.path.exists(root):
             missing.append({"path": root, "reason": "does not exist"})
             continue
-        entries, unreadable = manifest(root, excludes, include)
+        unreadable_dirs = []
+        entries, unreadable = manifest(root, excludes, include,
+                                       unreadable_dirs=unreadable_dirs)
         seen.append({
             "path": os.path.abspath(root),
             "fingerprint": fingerprint(entries),
             "files": len(entries),
             "declared": declared_version(root, version_spec),
             "unreadable": unreadable,
+            "unreadable_dirs": unreadable_dirs,
             "_entries": entries,
         })
 
@@ -188,6 +206,7 @@ def measure(copies, excludes=None, include=None, version_spec=None):
             "copies_missing": len(missing),
             "not_measured": missing,
             "unreadable_files": sum(len(c["unreadable"]) for c in seen),
+            "unreadable_dirs": sum(len(c["unreadable_dirs"]) for c in seen),
             "excluded": sorted(excludes),
             "include_filter": include,
         },
@@ -262,7 +281,18 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
 
     stream.write(f"\ncoverage: {c['copies_measured']}/{c['copies_declared']} "
                  f"copies measured, {c['copies_missing']} missing, "
-                 f"{c['unreadable_files']} files unreadable\n")
+                 f"{c['unreadable_files']} files unreadable")
+    if c.get("unreadable_dirs"):
+        stream.write(f", {c['unreadable_dirs']} directories unreadable")
+    stream.write("\n")
+    for cp in res.get("_seen", []):
+        for u in cp["unreadable"]:
+            stream.write(f"  unreadable file: {os.path.join(cp['path'], u['path'])}"
+                         f" - {u['reason']}\n")
+        for u in cp.get("unreadable_dirs", []):
+            stream.write(f"  unreadable directory: "
+                         f"{os.path.join(cp['path'], u['path'])} - "
+                         f"{u['reason']} - nothing inside it was measured\n")
     for m in c["not_measured"]:
         stream.write(f"  not measured: {m['path']} - {m['reason']}\n")
     if c["include_filter"]:
