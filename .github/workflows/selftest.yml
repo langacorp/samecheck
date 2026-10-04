@@ -1,6 +1,7 @@
 name: self-test
 
-# Runs the tool's own two-direction self-test on every push.
+# Runs the tool's own two-direction self-test, and the unit tests, on every
+# push.
 # The point is not that it passed once: it is that it passes today.
 #
 # NO SECRETS. This workflow reads nothing but the repository itself and needs
@@ -25,20 +26,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.9", "3.13"]
+        # 3.9 is the floor declared in pyproject.toml; 3.13 the newest.
+        python: ["3.9", "3.11", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
       # A file that does not compile is a test that never ran, and from the
       # outside it looks exactly like one that passed.
       - name: Compile
-        run: python -m compileall -q samecheck.py
+        run: python -m compileall -q samecheck.py tests
 
       # Both directions: it must fire on a planted case and stay silent on a
       # clean one. A check that only ever passes proves nothing.
       - name: Self-test
         run: python samecheck.py --selftest
+
+      # Each part on its own, every verdict in the direction where it must
+      # fire and the one where it must stay silent.
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      # The package must install and its entry point must run the same check.
+      - name: Install and run the entry point
+        run: |
+          python -m pip install .
+          samecheck --version
+          samecheck --selftest
