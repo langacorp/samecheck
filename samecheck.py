@@ -235,6 +235,7 @@ def measure(copies, excludes=None, include=None, version_spec=None):
             "copies_measured": len(seen),
             "copies_missing": len(missing),
             "not_measured": missing,
+            "files_measured": sum(c["files"] for c in seen),
             "unreadable_files": sum(len(c["unreadable"]) for c in seen),
             "unreadable_dirs": sum(len(c["unreadable_dirs"]) for c in seen),
             "excluded": sorted(excludes),
@@ -254,13 +255,22 @@ def measure(copies, excludes=None, include=None, version_spec=None):
     }
 
 
+def nothing_measured(res):
+    c = res["coverage"]
+    return c["copies_measured"] == 0 or c.get("files_measured", 1) == 0
+
+
 def exit_code(res):
     """0 one content, 1 divergence found, 2 nothing was measured.
 
     One function for the text report and --json alike: the same run must not
     exit differently depending on how its answer is printed.
+
+    Copies that exist but yielded no file - an --include that matched nothing,
+    empty or unlistable directories - also count as nothing measured: equal
+    empty manifests are not evidence that the copies are the same.
     """
-    if res["coverage"]["copies_measured"] == 0:
+    if nothing_measured(res):
         return 2
     return 1 if res["distinct_contents"] > 1 else 0
 
@@ -310,7 +320,8 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
                     stream.write(f"      ... and {len(items) - 5} more\n")
 
     stream.write(f"\ncoverage: {c['copies_measured']}/{c['copies_declared']} "
-                 f"copies measured, {c['copies_missing']} missing, "
+                 f"copies measured, {c['files_measured']} files read, "
+                 f"{c['copies_missing']} missing, "
                  f"{c['unreadable_files']} files unreadable")
     if c.get("unreadable_dirs"):
         stream.write(f", {c['unreadable_dirs']} directories unreadable")
@@ -335,7 +346,7 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
     stream.write("\nsamecheck does not say which copy is the right one. "
                  "That is a decision.\n")
 
-    if c["copies_measured"] == 0:
+    if nothing_measured(res):
         stream.write("NOTHING WAS MEASURED. This is not a pass.\n")
     return exit_code(res)
 
