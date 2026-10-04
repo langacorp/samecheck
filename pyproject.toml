@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "samecheck"
+dynamic = ["version"]
+description = "Measure whether the copies that should be identical still are. Never says which one is right."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "LANGA Corp. Srl", email = "opensource@langa.tv" }]
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.urls]
+Homepage = "https://github.com/langacorp/samecheck"
+Source = "https://github.com/langacorp/samecheck"
+Changelog = "https://github.com/langacorp/samecheck/blob/main/CHANGELOG.md"
+
+[project.scripts]
+samecheck = "samecheck:main"
+
+[tool.setuptools]
+py-modules = ["samecheck"]
+
+[tool.setuptools.dynamic]
+version = { attr = "samecheck.__version__" }
