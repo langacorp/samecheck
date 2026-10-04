@@ -212,6 +212,45 @@ class SpecialFileTests(TmpCase):
         self.assertEqual(r["coverage"]["unreadable_files"], 1)
 
 
+@unittest.skipIf(sys.platform in ("win32", "darwin"),
+                 "needs a file system that accepts non-UTF-8 names")
+class NonUtf8NameTests(TmpCase):
+    def _copy_with_raw_name(self, name, raw, content=b"x"):
+        root = self.copy(name)
+        with open(os.path.join(os.fsencode(root), raw), "wb") as fh:
+            fh.write(content)
+        return root
+
+    def test_fingerprint_does_not_crash(self):
+        a = self._copy_with_raw_name("a", b"caf\xe9.txt")
+        b = self._copy_with_raw_name("b", b"caf\xe9.txt")
+        r = samecheck.measure([a, b])
+        self.assertEqual(r["distinct_contents"], 1)
+
+    def test_divergence_still_found(self):
+        a = self._copy_with_raw_name("a", b"caf\xe9.txt", b"1")
+        b = self._copy_with_raw_name("b", b"caf\xe9.txt", b"2")
+        self.assertEqual(samecheck.measure([a, b])["distinct_contents"], 2)
+
+    def test_fingerprint_of_utf8_names_unchanged(self):
+        # The fix must not move the fingerprint of copies that worked before.
+        entries = {"lib/\u00e9.php": "0" * 64}
+        expected = __import__("hashlib").sha256(
+            ("0" * 64 + "  lib/\u00e9.php\n").encode("utf-8")).hexdigest()
+        self.assertEqual(samecheck.fingerprint(entries), expected)
+
+    def test_text_report_on_strict_utf8_stream(self):
+        a = self._copy_with_raw_name("a", b"caf\xe9.txt", b"1")
+        b = self._copy_with_raw_name("b", b"caf\xe9.txt", b"2")
+        c = self._copy_with_raw_name("c", b"caf\xe9.txt", b"2")
+        r = samecheck.measure([a, b, c])
+        raw = io.BytesIO()
+        stream = io.TextIOWrapper(raw, encoding="utf-8", errors="strict")
+        self.assertEqual(samecheck.report(r, stream), 1)
+        stream.flush()
+        self.assertIn(b"caf\\xe9.txt", raw.getvalue())
+
+
 class UnreadableDirectoryTests(TmpCase):
     def _two_copies_with_secret(self):
         a = self.copy("a", **{"secret/k": b"1"})

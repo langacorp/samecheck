@@ -119,8 +119,16 @@ def fingerprint(entries):
     """One hash for a whole copy: sha256 over the sorted digest+path lines."""
     h = hashlib.sha256()
     for rel in sorted(entries):
-        h.update(f"{entries[rel]}  {rel}\n".encode("utf-8"))
+        # surrogateescape gives back the original bytes of a file name that is
+        # not valid UTF-8, instead of raising. Valid names encode as before.
+        h.update(f"{entries[rel]}  {rel}\n".encode("utf-8", "surrogateescape"))
     return h.hexdigest()
+
+
+def shown(path):
+    """A path safe to print: bytes that are not UTF-8 are written as \\xNN."""
+    return path.encode("utf-8", "surrogateescape").decode("utf-8",
+                                                          "backslashreplace")
 
 
 def declared_version(root, spec):
@@ -249,7 +257,7 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
                      f"{'y' if g['copies'] == 1 else 'ies'}, {g['files']} files"
                      f"{'  declared: ' + decl if decl else ''}\n")
         for p in g["paths"][:10]:
-            stream.write(f"      {p}\n")
+            stream.write(f"      {shown(p)}\n")
         if len(g["paths"]) > 10:
             stream.write(f"      ... and {len(g['paths']) - 10} more\n")
 
@@ -275,7 +283,7 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
                     ("in both, different content", d["common_but_different"])):
                 stream.write(f"    {label}: {len(items)}\n")
                 for p in items[:5]:
-                    stream.write(f"      {p}\n")
+                    stream.write(f"      {shown(p)}\n")
                 if len(items) > 5:
                     stream.write(f"      ... and {len(items) - 5} more\n")
 
@@ -287,14 +295,15 @@ def report(res, stream=sys.stdout, diff_against_largest=True):
     stream.write("\n")
     for cp in res.get("_seen", []):
         for u in cp["unreadable"]:
-            stream.write(f"  unreadable file: {os.path.join(cp['path'], u['path'])}"
+            stream.write(f"  unreadable file: "
+                         f"{shown(os.path.join(cp['path'], u['path']))}"
                          f" - {u['reason']}\n")
         for u in cp.get("unreadable_dirs", []):
             stream.write(f"  unreadable directory: "
-                         f"{os.path.join(cp['path'], u['path'])} - "
+                         f"{shown(os.path.join(cp['path'], u['path']))} - "
                          f"{u['reason']} - nothing inside it was measured\n")
     for m in c["not_measured"]:
-        stream.write(f"  not measured: {m['path']} - {m['reason']}\n")
+        stream.write(f"  not measured: {shown(m['path'])} - {m['reason']}\n")
     if c["include_filter"]:
         stream.write(f"  only files matching: {c['include_filter']} - "
                      f"divergence outside this filter was not measured\n")
