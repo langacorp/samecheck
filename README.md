@@ -53,8 +53,13 @@ was only ever set in one place.
 
 ## Coverage is always declared
 
-Every run states how many copies were measured out of how many declared, which ones
-were missing, how many files could not be read, and what was excluded.
+Every run states how many copies were measured out of how many declared, how many
+files were read, which copies were missing, which files and directories could not
+be read, and what was excluded.
+
+A directory that cannot be listed, and a symlink to a directory, are not entered.
+Both are named in the coverage, because every file inside them is left out of the
+comparison. A FIFO or device is not read and is counted as unreadable.
 
 If an `include` filter was used, the run says so — divergence outside the filter was
 not measured. **Measured divergence is a lower bound, never an upper one.** A partial
@@ -62,15 +67,26 @@ coverage can call two things identical when they are not, and it always errs in 
 same direction.
 
 A run that measured nothing prints `NOTHING WAS MEASURED. This is not a pass.` and
-exits `2`.
+exits `2`. That includes a run where the copies exist but no file was read in any of
+them — an `include` that matches nothing, for example. Equal empty manifests are not
+evidence that the copies are the same.
 
 ## Install
 
-None. Python 3.8+, standard library only.
+None needed. Python 3.9+, standard library only. The single file runs as it is:
 
 ```
 curl -O https://raw.githubusercontent.com/langacorp/samecheck/main/samecheck.py
 python3 samecheck.py --selftest
+```
+
+Or install it from git, which puts a `samecheck` command on the path. It is not
+published on PyPI.
+
+```
+pipx install git+https://github.com/langacorp/samecheck
+pip install git+https://github.com/langacorp/samecheck
+samecheck --selftest
 ```
 
 ## Prove it before you trust it
@@ -88,6 +104,12 @@ Five directions, all asserted, any one failing fails the test:
 4. **must not look like a pass** when nothing was measured
 5. **the fingerprint must not depend on file order** — the same manifest fed in
    reverse must produce the same fingerprint
+
+The unit tests in `tests/` check each part on its own, in both directions:
+
+```
+python3 -m unittest discover -s tests -v
+```
 
 ## Use
 
@@ -114,9 +136,17 @@ python3 samecheck.py -c copies.json --json
 ```
 
 `declared_version` is optional; without it the tool groups by content only and
-cannot name contradictions.
+cannot name contradictions. Its `pattern` needs one capture group.
 
-Exit codes: `0` one content · `1` divergence found · `2` nothing was measured.
+`--exclude` and `--include` on the command line also apply next to a config:
+`--exclude` adds to its list, `--include` replaces its filter. An exclude with a
+slash, such as `vendor/bin`, matches that run of directories at any depth.
+
+A copy can be a single file. Its name is not part of the fingerprint, so the same
+content kept as `config.php` and `config-old.php` is one content.
+
+Exit codes: `0` one content · `1` divergence found · `2` nothing was measured, or
+the config or a regex could not be used. The same codes apply with `--json`.
 
 ## Limits, stated
 
